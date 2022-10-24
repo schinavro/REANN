@@ -55,6 +55,7 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
              loss=loss_fn(Prop_class(cart,numatoms,species,atom_index,shifts,\
              create_graph=False),abProp)
              lossprop=lossprop+loss.detach()
+             print(lossprop)
 
           # all_reduce the rmse
           dist.all_reduce(lossprop.detach(),op=dist.ReduceOp.SUM)
