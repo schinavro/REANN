@@ -85,7 +85,10 @@ if world_size>1:
         Prop_class = DDP(Prop_class, find_unused_parameters=find_unused)
 
 #define the loss function
-loss_fn=Loss()
+if loss_type == 'RMSE':
+    loss_fn=MSEFLoss()
+elif loss_type == 'MAE': 
+    loss_fn=MAEFLoss()
 
 #define optimizer
 optim=torch.optim.AdamW(Prop_class.parameters(), lr=start_lr, weight_decay=re_ceff)
@@ -107,7 +110,8 @@ if table_init==1:
     prop_ceff[1]=f_ceff
 
 
-ema = EMA(Prop_class, 0.999)
+# ema = EMA(Prop_class, 0.999)
+ema = EMA(Prop_class, 0.05)
 #==========================================================
 if dist.get_rank()==0:
     fout.write(time.strftime("%Y-%m-%d-%H_%M_%S \n", time.localtime()))
@@ -116,7 +120,7 @@ if dist.get_rank()==0:
         print(name)
 #==========================================================
 Optimize(fout,prop_ceff,nprop,train_nele,test_nele,init_f,final_f,decay_factor,start_lr,end_lr,print_epoch,Epoch,\
-data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,device,PES_Lammps=PES_Lammps)
+data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,device,PES_Lammps=PES_Lammps, loss_type=loss_type)
 if dist.get_rank()==0:
     fout.write(time.strftime("%Y-%m-%d-%H_%M_%S \n", time.localtime()))
     fout.write("terminated normal\n")

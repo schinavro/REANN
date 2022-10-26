@@ -5,8 +5,9 @@ import torch.distributed as dist
 
 
 def Optimize(fout,prop_ceff,nprop,train_nele,test_nele,init_f,final_f,decay_factor,start_lr,end_lr,print_epoch,Epoch,\
-data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,device,PES_Lammps=None): 
+data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,device,PES_Lammps=None, **kwargs): 
 
+    loss_type = kwargs.get('loss_type', 'RMSE')
     rank=dist.get_rank()
     best_loss=1e30*torch.ones(1,device=device)    
 
@@ -15,6 +16,9 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
     fout.write("{0:<5s} {1:>8s} {2:5s} {3:>16s} {4:>16s} {5:>5s} {6:>16s} {7:>16s} \n".format(
                 "Epoch", "lr", "Train", "RMSE-E(meV/atom)", "RMSE-F(meV/å)", " Test", "RMSE-E(meV/atom)", "RMSE-F(meV/atom)"))
     for iepoch in range(Epoch): 
+
+       if iepoch > scheduler.patience:
+          optim.param_groups[0]["lr"] = end_lr
         # set the model to train
        Prop_class.train()
        lossprop=torch.zeros(nprop+2,device=device)        
@@ -51,7 +55,11 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           # here we dont need to recalculate the training error for saving the computation
           dist.all_reduce(lossprop, op=dist.ReduceOp.SUM)
           NC, NTA, lossE, lossG = lossprop
-          loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / NTA)])
+
+          if loss_type == 'RMSE':
+              loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / NTA)])
+          elif loss_type == 'MAE':
+              loss = torch.tensor([lossE / NC, lossG / NTA]).to(device=device)
           
           # get the current rank and print the error in rank 0
           if rank==0:
@@ -80,7 +88,11 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           # all_reduce the rmse
           dist.all_reduce(lossprop.detach(),op=dist.ReduceOp.SUM)
           NC, NTA, lossE, lossG = lossprop
-          loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / NTA)]).to(device=device)
+
+          if loss_type == 'RMSE':
+              loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / NTA)]).to(device=device)
+          elif loss_type == 'MAE':
+              loss = torch.tensor([lossE / NC, lossG / NTA]).to(device=device)
           tot_loss = torch.sum(loss*prop_ceff[0:nprop])
 
           # loss=torch.sum(torch.mul(lossprop,prop_ceff[0:nprop]))
@@ -89,7 +101,7 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           # f_ceff=init_f+(final_f-init_f)*(lr-start_lr)/(end_lr-start_lr+1e-8)
           # prop_ceff[1]=f_ceff
           #  save the best model
-          if tot_loss <best_loss[0]:
+          if tot_loss < best_loss[0]:
              best_loss[0]=tot_loss
              if rank == 0:
                  state = {'reannparam': Prop_class.state_dict(), 'optimizer': optim.state_dict()}
@@ -117,5 +129,5 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
               # if stop criterion
               fout.write("\n")
               fout.flush()
-          if lr <=end_lr: break
+          # if lr <=end_lr: break
 

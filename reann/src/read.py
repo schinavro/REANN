@@ -55,6 +55,8 @@ DDP_backend="nccl"
 floder="./"
 dtype='float32'   #float32/float64
 norbit=None
+#===================== Error unit print options =========================================
+loss_type = 'RMSE'
 #===================== defalut values in input_density============================================
 nipsin=2
 cutoff=5.0
