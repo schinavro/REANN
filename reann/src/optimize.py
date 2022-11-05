@@ -11,15 +11,13 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
     rank=dist.get_rank()
     best_loss=1e30*torch.ones(1,device=device)    
 
-    optim.param_groups[0]["lr"] = start_lr
+    #optim.param_groups[0]["lr"] = start_lr
 
     fout.write("{0:<5s} {1:>8s} {2:5s} {3:>16s} {4:>16s} {5:>5s} {6:>16s} {7:>16s} \n".format(
                 "Epoch", "lr", "Train", "RMSE-E(meV/atom)", "RMSE-F(meV/å)", " Test", "RMSE-E(meV/atom)", "RMSE-F(meV/atom)"))
     for iepoch in range(Epoch): 
 
-       if iepoch > scheduler.patience:
-          optim.param_groups[0]["lr"] = end_lr
-        # set the model to train
+       # set the model to train
        Prop_class.train()
        lossprop=torch.zeros(nprop+2,device=device)        
        # NC, NTA, lossE, lossG = 0, 0, 0, 0
@@ -33,8 +31,9 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           #print(torch.cuda.memory_allocated)
           # obtain the gradients
           loss.backward()
+          torch.nn.utils.clip_grad_norm_(Prop_class.parameters(), 1)
           optim.step()   
-
+          scheduler.step()
           if np.mod(iepoch,print_epoch)==0:
               lossprop[0] += len(numatoms)
               lossprop[1] += torch.sum(numatoms)
@@ -51,15 +50,23 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           # ema.apply_shadow()
           # set the model to eval for used in the model
           Prop_class.eval()
+          if rank ==0:
+              print('rs', '%.4f'%torch.min(Prop_class.module.density.rs).item(), 'l', 
+                     '%.4f'%torch.min(torch.abs(Prop_class.module.density.inta)).item(), 
+                     '%.4f'%torch.max(torch.abs(Prop_class.module.density.inta)).item())
+              #print('act_alpha', '%.4f'%torch.max(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].alpha)).item(), 
+              #                   '%.4f'%torch.min(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].alpha)).item(),
+              #      'beta', '%.4f'%torch.max(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].beta)).item(), 
+              #              '%.4f'%torch.min(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].beta)).item())
           # all_reduce the rmse form the training process 
           # here we dont need to recalculate the training error for saving the computation
           dist.all_reduce(lossprop, op=dist.ReduceOp.SUM)
           NC, NTA, lossE, lossG = lossprop
 
           if loss_type == 'RMSE':
-              loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / NTA)])
+              loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / (3*NTA))])
           elif loss_type == 'MAE':
-              loss = torch.tensor([lossE / NC, lossG / NTA]).to(device=device)
+              loss = torch.tensor([lossE / NC, lossG /(3*NTA)]).to(device=device)
           
           # get the current rank and print the error in rank 0
           if rank==0:
@@ -90,9 +97,9 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           NC, NTA, lossE, lossG = lossprop
 
           if loss_type == 'RMSE':
-              loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / NTA)]).to(device=device)
+              loss = torch.tensor([torch.sqrt(lossE / NC), torch.sqrt(lossG / (3*NTA))]).to(device=device)
           elif loss_type == 'MAE':
-              loss = torch.tensor([lossE / NC, lossG / NTA]).to(device=device)
+              loss = torch.tensor([lossE / NC, lossG / (3*NTA)]).to(device=device)
           tot_loss = torch.sum(loss*prop_ceff[0:nprop])
 
           # loss=torch.sum(torch.mul(lossprop,prop_ceff[0:nprop]))

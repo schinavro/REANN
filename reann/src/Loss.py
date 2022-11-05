@@ -27,11 +27,11 @@ class MSEFLoss(nn.Module):
       ff = y1[1] - y0[1]
       self.lossE = tc.sum(ee*ee).view(-1)
       self.lossG = tc.sum(ff*ff).view(-1)
-      return torch.cat([self.lossE/NC, self.lossG/NTA])
+      return torch.cat([self.lossE/NC, self.lossG/(3*NTA)])
 
 class MAEFLoss(nn.Module):
    def __init__(self):
-      super(MSEFLoss, self).__init__()
+      super(MAEFLoss, self).__init__()
       # self.muE = muE
       # self.muF = muF
 
@@ -46,4 +46,4 @@ class MAEFLoss(nn.Module):
       ff = y1[1] - y0[1]
       self.lossE = tc.sum(tc.abs(ee)).view(-1)
       self.lossG = tc.sum(tc.abs(ff)).view(-1)
-      return torch.cat([self.lossE/NC, self.lossG/NTA])
+      return torch.cat([self.lossE/NC, self.lossG/(3*NTA)])

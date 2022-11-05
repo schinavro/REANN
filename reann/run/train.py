@@ -94,7 +94,11 @@ elif loss_type == 'MAE':
 optim=torch.optim.AdamW(Prop_class.parameters(), lr=start_lr, weight_decay=re_ceff)
 
 # learning rate scheduler 
-scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(optim,factor=decay_factor,patience=patience_epoch,min_lr=end_lr)
+# scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(optim,factor=decay_factor,patience=patience_epoch,min_lr=end_lr)
+batch_cycle=0
+for batch in dataloader_train:
+    batch_cycle+=1
+scheduler=torch.optim.lr_scheduler.LinearLR(optim, start_factor=1, end_factor=end_lr/start_lr, total_iters=Epoch*batch_cycle)
 
 #define the restart
 restart=Restart(optim)
