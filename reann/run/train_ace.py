@@ -3,7 +3,8 @@ import time
 from src.read import *
 from src.dataloader import *
 from src.optimize import *
-from src.density import *
+from src.density_ace import *
+from src.ACE_MODEL import *
 from src.MODEL import *
 from src.EMA import *
 from src.restart import *
@@ -28,6 +29,8 @@ elif start_table==3:
     from src.Property_TDM import *
 elif start_table==4:
     from src.Property_POL import *
+elif start_table==5:
+    from src.Property_force_ace import *
 from src.cpu_gpu import *
 from src.Loss import *
 PES_Lammps=None
@@ -43,6 +46,8 @@ elif start_table==3:
     import tdm.script_PES as PES_Normal
 elif start_table==4:
     import pol.script_PES as PES_Normal
+elif start_table==5:
+   import pes.script_PES as PES_Normal 
 
 #==============================train data loader===================================
 dataloader_train=DataLoader(com_coor_train,abpropset_train,numatoms_train,\
@@ -64,9 +69,10 @@ for ioc_loop in range(oc_loop):
     ocmod=NNMod(maxnumtype,nwave,atomtype,oc_nblock,list(oc_nl),oc_dropout_p,oc_actfun,table_norm=oc_table_norm)
     ocmod_list.append(ocmod)
 #=======================density======================================================
-getdensity=GetDensity(rs,inta,cutoff,neigh_atoms,nipsin,norbit,ocmod_list)
+# getdensity=GetDensity(rs,inta,cutoff,neigh_atoms,nipsin,norbit,ocmod_list)
+getdensity=GetACEDensity(rs,inta,cutoff,neigh_atoms,nipsin,norbit,ocmod_list)
 #==============================nn module=================================
-nnmod=NNMod(maxnumtype,outputneuron,atomtype,nblock,list(nl),dropout_p,actfun,initpot=initpot,table_norm=table_norm)
+nnmod=ACENNMod(maxnumtype,outputneuron,atomtype,nblock,list(nl),dropout_p,actfun,initpot=initpot,table_norm=table_norm, **ace_kwargs)
 nnmodlist=[nnmod]
 if start_table == 4:
     nnmod1=NNMod(maxnumtype,outputneuron,atomtype,nblock,list(nl),dropout_p,actfun,table_norm=table_norm)
@@ -74,7 +80,7 @@ if start_table == 4:
     nnmodlist.append(nnmod1)
     nnmodlist.append(nnmod2)
 #=========================create the module=========================================
-Prop_class=Property(getdensity,nnmodlist).to(device)  # to device must be included
+Prop_class=Property(getdensity,nnmodlist, **ace_kwargs).to(device)  # to device must be included
 
 ##  used for syncbn to synchronizate the mean and variabce of bn 
 #Prop_class=torch.nn.SyncBatchNorm.convert_sync_batchnorm(Prop_class).to(device)

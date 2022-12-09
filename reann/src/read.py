@@ -62,6 +62,9 @@ nipsin=2
 cutoff=5.0
 nwave=8
 #======================read input_nn=================================================================
+
+ace_kwargs = dict(cluster_number=1)
+# ====================== ACE_kwags==================
 with open('para/input_nn','r') as f1:
    while True:
       tmp=f1.readline()
@@ -108,6 +111,8 @@ elif start_table==3:
    outputneuron=3
 elif start_table==4:
    outputneuron=1
+elif start_table==5:
+   outputneuron=1
 
 #========================use for read rs/inta or generate rs/inta================
 maxnumtype=len(atomtype)
@@ -135,9 +140,12 @@ if start_table==0 or start_table==1:
 elif start_table==2 or start_table==3:
     numpoint,atom,mass,numatoms,scalmatrix,period_table,coor,dip,force=  \
     Read_data(floderlist,3)
+elif start_table==5:
+    numpoint,atom,mass,numatoms,scalmatrix,period_table,coor,pot,force=  \
+    Read_data(floderlist,1,start_table=1)
 else:
-    numpoint,atom,mass,numatoms,scalmatrix,period_table,coor,pol,force=  \
-    Read_data(floderlist,9)
+    numpoint,atom,mass,numatoms,scalmatrix,period_table,coor,pot,force=  \
+    Read_data(floderlist,1,start_table=start_table)
 
 #============================convert form the list to torch.tensor=========================
 numpoint=np.array(numpoint,dtype=np.int64)
@@ -148,6 +156,11 @@ if start_table<=1:
     pot=np.array(pot,dtype=np.float64).reshape(-1)
     initpot=np.sum(pot)/np.sum(numatoms)
     pot=pot-initpot*numatoms
+elif start_table==5:
+    pot=np.array(pot,dtype=np.float64).reshape(-1)
+    initpot=np.sum(pot)/np.sum(numatoms)
+    pot=pot-initpot*numatoms
+
 # get the total number configuration for train/test
 ntotpoint=0
 for ipoint in numpoint:
@@ -252,12 +265,27 @@ if start_table==4:
     train_nele[0]=numpoint[0]*9
     test_nele[0]=numpoint[1]*9 
 
+if start_table==5:
+    pot_train=torch.from_numpy(np.array(pot[range_train[0]:range_train[1]],dtype=np_dtype))
+    pot_test=torch.from_numpy(np.array(pot[range_test[0]:range_test[1]],dtype=np_dtype))
+    abpropset_train=(pot_train,force_train)
+    abpropset_test=(pot_test,force_test)
+    nprop=2
+    test_nele=torch.empty(nprop)
+    train_nele=torch.empty(nprop)
+    train_nele[0]=numpoint[0]
+    train_nele[1]=ntrain_vec
+    test_nele[0]=numpoint[1] 
+    test_nele[1]=ntest_vec
+
+
 # delete the original coordiante
 del coor,mass,numatoms,atom,scalmatrix,period_table
 if start_table==0: del pot
 if start_table==1: del pot,force
 if start_table==2 and start_table==3: del dip
 if start_table==4: del pol
+if start_table==5: del pot,force
 gc.collect()
     
 #======================================================
@@ -270,4 +298,3 @@ patience_epoch=patience_epoch/print_epoch
 # dropout_p for each hidden layer
 dropout_p=np.array(dropout_p,dtype=np_dtype)
 oc_dropout_p=np.array(oc_dropout_p,dtype=np_dtype)
-print(rs)

@@ -13,7 +13,7 @@ start_table,table_coor,neigh_atoms,batchsize,cutoff,device,np_dtype):
     cell_rank=np.array(scalmatrix[range_rank[0]:range_rank[1]],dtype=np_dtype)
     coor_rank=coor[range_rank[0]:range_rank[1]]
     force_rank=None
-    if start_table==1: force_rank=force[range_rank[0]:range_rank[1]]
+    if start_table==1 or start_table==5: force_rank=force[range_rank[0]:range_rank[1]]
     # get the index of each element
     species_rank=-torch.ones((range_rank[1]-range_rank[0],maxnumatom),dtype=torch.long)
     for ipoint in range(range_rank[1]-range_rank[0]):
@@ -24,7 +24,7 @@ start_table,table_coor,neigh_atoms,batchsize,cutoff,device,np_dtype):
                 species_rank[ipoint,ele_index]=itype
     
     com_coor_rank,order_force_rank=get_com(coor_rank,force_rank,mass_rank,cell_rank,numatoms_rank,maxnumatom,table_coor,start_table)
-    if start_table==1: order_force_rank=torch.from_numpy(order_force_rank)
+    if start_table==1 or start_table==5: order_force_rank=torch.from_numpy(order_force_rank)
     com_coor_rank=torch.from_numpy(com_coor_rank)
     cell_rank=torch.from_numpy(cell_rank)
     numatoms_rank=torch.from_numpy(numatoms_rank)

@@ -50,10 +50,10 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
           # ema.apply_shadow()
           # set the model to eval for used in the model
           Prop_class.eval()
-          if rank ==0:
-              print('rs', '%.4f'%torch.min(Prop_class.module.density.rs).item(), 'l', 
-                     '%.4f'%torch.min(torch.abs(Prop_class.module.density.inta)).item(), 
-                     '%.4f'%torch.max(torch.abs(Prop_class.module.density.inta)).item())
+          # if rank ==0:
+              #print('rs', '%.4f'%torch.min(Prop_class.module.density.rs).item(), 'l', 
+              #       '%.4f'%torch.min(torch.abs(Prop_class.module.density.inta)).item(), 
+              #       '%.4f'%torch.max(torch.abs(Prop_class.module.density.inta)).item())
               #print('act_alpha', '%.4f'%torch.max(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].alpha)).item(), 
               #                   '%.4f'%torch.min(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].alpha)).item(),
               #      'beta', '%.4f'%torch.max(torch.abs(Prop_class.module.nnmod.elemental_nets['Ni'][2].beta)).item(), 
@@ -113,9 +113,9 @@ data_train,data_test,Prop_class,loss_fn,optim,scheduler,ema,restart,PES_Normal,d
              if rank == 0:
                  state = {'reannparam': Prop_class.state_dict(), 'optimizer': optim.state_dict()}
                  torch.save(state, "./REANN.pth")
-                 PES_Normal.jit_pes()
-                 if PES_Lammps:
-                     PES_Lammps.jit_pes()
+                 # PES_Normal.jit_pes()
+                 # if PES_Lammps:
+                 #     PES_Lammps.jit_pes()
              # the barrier is used to prevent multiple processes from accessing the "REANN.pth" at the same time.
              # for example, when process 0  is saving the model to generate "REANN.pth" and the other processes are reading the "REANN.pth".
           
