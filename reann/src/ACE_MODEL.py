@@ -32,7 +32,7 @@ class ResBlock(nn.Module):
 
 #==================for get the atomic energy=======================================
 class ACENNMod(torch.nn.Module):
-   def __init__(self,maxnumtype,outputneuron,atomtype,nblock,nl,dropout_p,actfun,initpot=0.0,table_norm=True, cluster_number=None):
+   def __init__(self,maxnumtype,outputneuron,atomtype,nblock,nl,dropout_p,actfun,initpot=0.0,table_norm=True, cluster_number=1, **kwargs):
       """
       maxnumtype: is the maximal element
       nl: (norbit x nl0 x nl1 x ...) is the neural network structure;
@@ -66,7 +66,6 @@ class ACENNMod(torch.nn.Module):
               if abs(initpot)>1e-6: zeros_(linear.bias)
               modules.append(linear)
               elemental_nets[ele] = Sequential(*modules)
-          print(nl[0]**self.cluster_number)
       self.elemental_nets=nn.ModuleDict(elemental_nets)
 
 #   @pysnooper.snoop('out',depth=2)   for debug

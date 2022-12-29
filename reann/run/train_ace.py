@@ -70,7 +70,7 @@ for ioc_loop in range(oc_loop):
     ocmod_list.append(ocmod)
 #=======================density======================================================
 # getdensity=GetDensity(rs,inta,cutoff,neigh_atoms,nipsin,norbit,ocmod_list)
-getdensity=GetACEDensity(rs,inta,cutoff,neigh_atoms,nipsin,norbit,ocmod_list)
+getdensity=GetACEDensity(rs,inta,cutoff,neigh_atoms,nipsin,norbit,ocmod_list, **ace_kwargs)
 #==============================nn module=================================
 nnmod=ACENNMod(maxnumtype,outputneuron,atomtype,nblock,list(nl),dropout_p,actfun,initpot=initpot,table_norm=table_norm, **ace_kwargs)
 nnmodlist=[nnmod]
